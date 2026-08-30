@@ -1,20 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Video Gallery</title>
+    <meta charset="UTF-8">
+    <title>Video Anchor Test</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        .video {
+            margin-bottom: 80px;
+        }
+
+        video {
+            width: 700px;
+            max-width: 100%;
+        }
+    </style>
 </head>
+
 <body>
 
-  <h1>My Custom Video Page</h1>
-  <p>Here is a test link: <a href="#video10">Jump directly to Video 10</a></p>
+    <h1>Video Anchor Test</h1>
 
-  <br><br><br><br><br><br><br><br><br><br><br><br>
-  <div id="video10">
-    <h2>This is Video 10</h2>
-    <video width="600" controls>
-      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-    </video>
-  </div>
+    <p>
+        <a href="#video1">Video 1</a> |
+        <a href="#video2">Video 2</a> |
+        <a href="#video3">Video 3</a> |
+        <a href="#video4">Video 4</a> |
+        <a href="#video5">Video 5</a>
+    </p>
+
+
+    <!-- VIDEO 1 -->
+    <div class="video" id="video1">
+        <h2>Video 1</h2>
+
+        <video controls>
+            <source
+                src="https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4"
+                type="video/mp4">
+        </video>
+    </div>
+
+
+    <!-- VIDEO 2 -->
+    <div class="video" id="video2">
+        <h2>Video 2</h2>
+
+        <video controls>
+            <source
+                src="https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.mp4"
+                type="video/mp4">
+        </video>
+    </div>
+
+
+    <!-- VIDEO 3 -->
+    <div class="video" id="video3">
+        <h2>Video 3</h2>
+
+        <video controls>
+            <source
+                src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+                type="video/mp4">
+        </video>
+    </div>
+
+
+    <!-- VIDEO 4 -->
+    <div class="video" id="video4">
+        <h2>Video 4</h2>
+
+        <video controls>
+            <source
+                src="https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4"
+                type="video/mp4">
+        </video>
+    </div>
+
+
+    <!-- VIDEO 5 -->
+    <div class="video" id="video5">
+        <h2>Video 5</h2>
+
+        <video controls>
+            <source
+                src="https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm"
+                type="video/webm">
+        </video>
+    </div>
+
 
 </body>
 </html>
