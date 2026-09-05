@@ -1,98 +1,274 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Video Anchor Test</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Video Player</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a', // deep slate for better dark mode
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-
-        .video {
-            margin-bottom: 80px;
+        /* Fallback for older browsers without aspect-ratio support */
+        @supports not (aspect-ratio: 16 / 9) {
+            .video-wrapper {
+                position: relative;
+                padding-bottom: 56.25%;
+                height: 0;
+            }
+            .video-wrapper iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
         }
-
-        video {
-            width: 700px;
-            max-width: 100%;
+        /* Simple spinner animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
+<body class="bg-gray-100 text-gray-900 dark:bg-darkbg dark:text-gray-100 min-h-screen flex flex-col font-sans">
 
-<body>
+    <!-- Header containing Controls -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-darkbg/80 backdrop-blur-md shadow-sm dark:shadow-gray-800/50 p-4">
+        <div class="max-w-6xl mx-auto flex flex-wrap gap-4 justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight">Embedded Video Player</h1>
+            
+            <div class="flex gap-3">
+                <!-- Show All / Hide Button -->
+                <button id="showAllBtn" class="px-4 py-2 text-sm font-medium rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md flex items-center gap-2 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M228.92,49.69a8,8,0,0,0-6.86-1.45L160.93,63.52,99.58,32.84a8,8,0,0,0-7.22.06L31.36,63.15A8,8,0,0,0,26,70.35V208a8,8,0,0,0,11.58,7.16L96,186.23l61.27,30.64a8,8,0,0,0,7.18,0l63.09-31.55A8,8,0,0,0,232,178.18V56A8,8,0,0,0,228.92,49.69ZM90,172V52.79l56,28v119.2ZM42,75l40-20V171.4l-40,20Zm172,97.64-40,20V73.4l40-10.45Z"></path></svg>
+                    <span id="showAllText">Show All Videos</span>
+                </button>
 
-    <h1>Video Anchor Test</h1>
+                <!-- Day/Night Toggle -->
+                <button id="themeToggleBtn" class="px-4 py-2 text-sm font-medium rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md flex items-center gap-2">
+                    <span id="themeIcon">☀️</span>
+                    <span id="themeText">Light Mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-    <p>
-        <a href="#video1">Video 1</a> |
-        <a href="#video2">Video 2</a> |
-        <a href="#video3">Video 3</a> |
-        <a href="#video4">Video 4</a> |
-        <a href="#video5">Video 5</a>
-    </p>
+    <main class="flex-grow p-4 md:p-8 flex flex-col items-center justify-center">
+        
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="flex flex-col items-center justify-center my-20">
+            <div class="loader mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400 font-medium">Loading...</p>
+        </div>
 
+        <!-- Video Container -->
+        <div id="videoContainer" class="w-full max-w-6xl flex flex-col gap-12 hidden">
+            <!-- Videos will be auto-generated here from Google Sheets -->
+        </div>
+    </main>
 
-    <!-- VIDEO 1 -->
-    <div class="video" id="video1">
-        <h2>Video 1</h2>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Theme Toggling (Day/Night) ---
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            const htmlTag = document.documentElement;
 
-        <video controls>
-            <source
-                src="https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4"
-                type="video/mp4">
-        </video>
-    </div>
+            function updateThemeUI() {
+                if (htmlTag.classList.contains('dark')) {
+                    themeIcon.textContent = '☀️';
+                    themeText.textContent = 'Light Mode';
+                } else {
+                    themeIcon.textContent = '🌙';
+                    themeText.textContent = 'Dark Mode';
+                }
+            }
 
+            themeToggleBtn.addEventListener('click', () => {
+                htmlTag.classList.toggle('dark');
+                updateThemeUI();
+            });
 
-    <!-- VIDEO 2 -->
-    <div class="video" id="video2">
-        <h2>Video 2</h2>
+            // Initialize theme UI text
+            updateThemeUI();
 
-        <video controls>
-            <source
-                src="https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.mp4"
-                type="video/mp4">
-        </video>
-    </div>
+            const videoContainer = document.getElementById('videoContainer');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const showAllBtn = document.getElementById('showAllBtn');
+            
+            // Your Google Apps Script Web App URL
+            const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzGqY7w0M1E8Ergd1ffveXPWucRpY3DeDU08rbVvoRUAY2-6hORP26abfWkfDUeaAcUTw/exec';
 
+            async function fetchVideos() {
+                try {
+                    const response = await fetch(GOOGLE_SHEET_API_URL);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Hide loader, show main container and button
+                    loadingIndicator.style.display = 'none';
+                    videoContainer.classList.remove('hidden');
+                    showAllBtn.classList.remove('hidden');
 
-    <!-- VIDEO 3 -->
-    <div class="video" id="video3">
-        <h2>Video 3</h2>
+                    let validVideoCount = 0;
 
-        <video controls>
-            <source
-                src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-                type="video/mp4">
-        </video>
-    </div>
+                    // Ensure data is an array
+                    const rows = Array.isArray(data) ? data : [];
 
+                    rows.forEach((row) => {
+                        let url, title, description;
+                        
+                        // Handle standard 2D Array format from getValues()
+                        if (Array.isArray(row)) {
+                            url = row[0];
+                            title = row[1];
+                            description = row[2];
+                        } 
+                        // Handle Array of Objects (if script maps headers to keys)
+                        else if (typeof row === 'object' && row !== null) {
+                            const values = Object.values(row);
+                            url = values[0];
+                            title = values[1];
+                            description = values[2];
+                        }
 
-    <!-- VIDEO 4 -->
-    <div class="video" id="video4">
-        <h2>Video 4</h2>
+                        // Validate URL (Skip header rows or empty rows)
+                        if (url && typeof url === 'string' && url.startsWith('http')) {
+                            validVideoCount++;
+                            const videoId = validVideoCount.toString().padStart(4, '0');
+                            
+                            // Fallbacks for empty cells
+                            const finalTitle = (title && title.toString().trim() !== '') ? title.toString().trim() : `Video ${videoId}`;
+                            const finalDesc = (description && description.toString().trim() !== '') ? description.toString().trim() : '';
 
-        <video controls>
-            <source
-                src="https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4"
-                type="video/mp4">
-        </video>
-    </div>
+                            const article = document.createElement('article');
+                            article.className = 'video-section flex flex-col items-center w-full';
+                            article.dataset.video = videoId;
+                            
+                            // Inject the dynamic data into the HTML structure
+                            article.innerHTML = `
+                                <div class="video-wrapper w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-gray-200 dark:ring-gray-800">
+                                    <iframe class="w-full h-full" src="${url}" frameborder="0" scrolling="0" allowfullscreen></iframe>
+                                </div>
+                                <div class="mt-6 text-center w-full max-w-2xl">
+                                    <h2 class="text-2xl font-bold mb-2">${finalTitle}</h2>
+                                    ${finalDesc ? `<p class="text-gray-600 dark:text-gray-400 mb-4">${finalDesc}</p>` : ''}
+                                    <div class="inline-flex items-center gap-2 bg-gray-200 dark:bg-gray-800 px-4 py-2 rounded-lg text-sm w-full sm:w-auto overflow-hidden">
+                                        <span class="font-semibold whitespace-nowrap">Direct Link:</span>
+                                        <a href="?v=${videoId}" class="text-blue-600 dark:text-blue-400 hover:underline truncate copy-link">?v=${videoId}</a>
+                                    </div>
+                                </div>
+                            `;
+                            videoContainer.appendChild(article);
+                        }
+                    });
 
+                    setupFiltering();
 
-    <!-- VIDEO 5 -->
-    <div class="video" id="video5">
-        <h2>Video 5</h2>
+                } catch (error) {
+                    console.error("Failed to fetch videos:", error);
+                    loadingIndicator.innerHTML = `
+                        <div class="text-center text-red-500 max-w-lg p-6 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                            <h3 class="text-lg font-bold mb-2">Error Loading Videos</h3>
+                            <p class="text-sm">Could not retrieve data from Google Sheets. Ensure your Web App is deployed as "Anyone" can access.</p>
+                            <p class="text-xs mt-2 opacity-75">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
 
-        <video controls>
-            <source
-                src="https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm"
-                type="video/webm">
-        </video>
-    </div>
+            function setupFiltering() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetVideoId = urlParams.get('v'); // e.g., '0001', '0002'
+                
+                const videoSections = document.querySelectorAll('.video-section');
+                const showAllText = document.getElementById('showAllText');
+                let isShowingAll = false;
 
+                // Generate full absolute URLs for the direct links
+                const currentBaseUrl = window.location.href.split('?')[0];
+                document.querySelectorAll('.copy-link').forEach(link => {
+                    const vidId = link.getAttribute('href'); 
+                    link.href = currentBaseUrl + vidId;
+                    link.textContent = currentBaseUrl + vidId;
+                });
 
+                function applyFilter() {
+                    if (isShowingAll) {
+                        // Show everything
+                        videoSections.forEach(section => {
+                            section.style.display = 'flex';
+                        });
+                        showAllText.textContent = 'Hide Other Videos';
+                    } else {
+                        // Show only the target video, or default to the first one
+                        let found = false;
+                        videoSections.forEach(section => {
+                            if (section.dataset.video === targetVideoId) {
+                                section.style.display = 'flex';
+                                found = true;
+                            } else {
+                                section.style.display = 'none';
+                            }
+                        });
+
+                        // If no valid parameter is passed, show the first video by default
+                        if (!found && videoSections.length > 0) {
+                            videoSections.forEach(s => s.style.display = 'none');
+                            videoSections[0].style.display = 'flex';
+                        }
+                        showAllText.textContent = 'Show All Videos';
+                    }
+                }
+
+                // Initial filter on load
+                applyFilter();
+
+                // Toggle show all
+                showAllBtn.addEventListener('click', () => {
+                    isShowingAll = !isShowingAll;
+                    applyFilter();
+                    
+                    // If showing all, scroll to top smoothly
+                    if(isShowingAll) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            }
+
+            // Start the fetch process
+            fetchVideos();
+        });
+    </script>
 </body>
 </html>
