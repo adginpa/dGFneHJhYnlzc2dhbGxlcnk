@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splash Image Array Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .header p {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Grid layout: stacked on mobile, side-by-side on desktop */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .input-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .input-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* Editor box with synced line numbers */
+    .editor-box {
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+      height: 220px;
+      transition: border-color 0.2s;
+    }
+
+    .editor-box:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .line-numbers {
+      width: 44px;
+      background-color: #f1f5f9;
+      color: #94a3b8;
+      text-align: right;
+      padding: 12px 10px 12px 0;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      user-select: none;
+      border-right: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+
+    textarea {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 12px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      white-space: pre;
+      overflow-y: scroll;
+      color: #1e293b;
+      background: transparent;
+    }
+
+    .btn-generate {
+      width: 100%;
+      padding: 14px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-generate:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-generate:active {
+      transform: translateY(1px);
+    }
+
+    /* Output Card */
+    .output-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .copy-btn {
+      padding: 8px 16px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      background-color: #059669;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background-color: #047857;
+    }
+
+    .copy-btn.copied {
+      background-color: #0f766e;
+    }
+
+    #output-text {
+      height: 260px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background-color: #0f172a;
+      color: #38bdf8;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 14px;
+    }
+
+    /* Floating Toast Message */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: #0f172a;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Splash Images</h1>
+  </div>
+
+  <div class="input-grid">
+    <!-- URL Box -->
+    <div class="input-card">
+      <div class="card-title">URL</div>
+      <div class="editor-box">
+        <div class="line-numbers" id="url-lines">1</div>
+        <textarea id="urls-input" placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg" oninput="updateLineNumbers('urls-input', 'url-lines')" onscroll="syncScroll('urls-input', 'url-lines')"></textarea>
+      </div>
+    </div>
+
+    <!-- Title Box -->
+    <div class="input-card">
+      <div class="card-title">Title</div>
+      <div class="editor-box">
+        <div class="line-numbers" id="title-lines">1</div>
+        <textarea id="titles-input" placeholder="Banner 1&#10;Banner 2" oninput="updateLineNumbers('titles-input', 'title-lines')" onscroll="syncScroll('titles-input', 'title-lines')"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-generate" onclick="generateCode()">Generate</button>
+
+  <!-- Output Box -->
+  <div class="output-card">
+    <div class="output-header">
+      <div class="card-title">Generated Output</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyToClipboard()">Copy Output</button>
+    </div>
+    <textarea id="output-text" readonly placeholder="Click Generate to produce output..."></textarea>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard!</div>
+
+<script>
+  // Dynamically update numbers based on line breaks
+  function updateLineNumbers(inputId, linesId) {
+    const textarea = document.getElementById(inputId);
+    const lineNumbers = document.getElementById(linesId);
+    
+    const lines = textarea.value.split('\n').length;
+    let numbersHTML = '';
+    for (let i = 1; i <= lines; i++) {
+      numbersHTML += i + '<br>';
+    }
+    lineNumbers.innerHTML = numbersHTML;
+  }
+
+  // Keep scroll position synchronized between text area and numbers column
+  function syncScroll(inputId, linesId) {
+    const textarea = document.getElementById(inputId);
+    const lineNumbers = document.getElementById(linesId);
+    lineNumbers.scrollTop = textarea.scrollTop;
+  }
+
+  // Generate JS Array text block
+  function generateCode() {
+    const urlsRaw = document.getElementById('urls-input').value.split('\n');
+    const titlesRaw = document.getElementById('titles-input').value.split('\n');
+
+    const maxLines = Math.max(urlsRaw.length, titlesRaw.length);
+    const formattedLines = [];
+
+    for (let i = 0; i < maxLines; i++) {
+      const url = urlsRaw[i] ? urlsRaw[i].trim() : '';
+      const title = titlesRaw[i] ? titlesRaw[i].trim() : '';
+
+      // Include non-empty rows
+      if (url.length > 0 || title.length > 0) {
+        formattedLines.push(`  { url: "${url}", title: "${title}" },`);
+      }
+    }
+
+    const arrayContent = formattedLines.join('\n');
+
+    const finalOutput = `const PC_SPLASH_IMAGES = [\n${arrayContent}\n];\nconst MOBILE_SPLASH_IMAGES = [\n${arrayContent}\n];`;
+
+    document.getElementById('output-text').value = finalOutput;
+  }
+
+  // Copy text using traditional execCommand fallback for seamless iframe support
+  function copyToClipboard() {
+    const outputTextarea = document.getElementById('output-text');
+    if (!outputTextarea.value) return;
+
+    outputTextarea.select();
+    outputTextarea.setSelectionRange(0, 99999);
+
+    try {
+      document.execCommand('copy');
+      showToast('Copied to clipboard!');
+      
+      const copyBtn = document.getElementById('copy-btn');
+      copyBtn.innerText = 'Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.innerText = 'Copy Output';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    } catch (err) {
+      showToast('Failed to copy text.');
+    }
+
+    // Deselect after copy
+    window.getSelection().removeAllRanges();
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.innerText = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2500);
+  }
+
+  // Initial line number setup
+  updateLineNumbers('urls-input', 'url-lines');
+  updateLineNumbers('titles-input', 'title-lines');
+</script>
+
+</body>
+</html>
