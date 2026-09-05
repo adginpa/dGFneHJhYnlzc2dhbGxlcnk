@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <style>
+    /* TOUCHSCREEN OPTIMIZATION: Ensure smooth momentum scrolling */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      overscroll-behavior-y: contain;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f4f4f7;
+      font-size: 16px;
+      touch-action: manipulation;
+      color: #333;
+    }
+    
+    /* Splash Screen Styles */
+    #splashScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000; /* Dark background to blend better with images */
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+      overflow: hidden;
+    }
+    #splashScreen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #splashImgBlur {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      filter: blur(25px);
+      transform: scale(1.1);
+      display: none; /* Hidden on mobile by default */
+    }
+    #splashImg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      object-position: top;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    
+    /* Desktop Splash Media Query */
+    @media (min-width: 1080px) {
+      #splashImgBlur { display: block; }
+      #splashImg { object-fit: contain; }
+    }
+
+    #splashTitle {
+      position: absolute;
+      bottom: 110px;
+      z-index: 2;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      text-align: center;
+      padding: 0 20px;
+      opacity: 1;
+    }
+    
+    #continueBtn {
+      position: absolute;
+      bottom: 50px;
+      padding: 14px 36px;
+      background: #1d4ed8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    #continueBtn.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 998;
+    }
+    .search-btn, .display-btn {
+      padding: 8px 16px;
+      background: #fff;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .search-btn:hover, .display-btn:hover {
+      background: #f9fafb;
+    }
+
+    .display-options { position: relative; display: inline-block; }
+    .display-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 5px);
+      background-color: #fff;
+      min-width: 240px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      z-index: 1001;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #e5e7eb;
+    }
+    .display-content.open { display: block; }
+    .display-option { margin-bottom: 12px; }
+    .display-option:last-child { margin-bottom: 0; }
+    .display-option label { display:block; margin-bottom:5px; font-weight: 600; font-size:12px; color: #6b7280; text-transform: uppercase; }
+    .display-option select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ddd; }
+
+    .search-panel {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      width: 320px;
+      z-index: 1002;
+      display: none;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+    .search-panel.open { display: block; }
+    .search-panel-header { padding: 12px 15px; background: #f9fafb; border-bottom: 1px solid #eee; font-weight: bold; }
+    .search-panel-content { padding: 15px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: margin-left, width;
+    }
+    @media (min-width: 769px) {
+      .grid.filter-menu-open { margin-left: 280px; width: calc(100% - 280px); }
+    }
+    @media (max-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; } }
+
+    .card { 
+      display:flex; 
+      flex-direction:column; 
+      background:#fff; 
+      border: 1px solid #e5e7eb; 
+      border-radius:12px; 
+      overflow:hidden; 
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); }
+    .card img { width:100%; aspect-ratio:16/9; object-fit:contain; background:#f3f4f6; border-bottom: 1px solid #eee; }
+    .card-content { padding:15px; flex:1; display:flex; flex-direction:column; }
+    .card-content a { font-weight:700; text-decoration:none; color:#111827; margin-bottom:8px; font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-content a.full-title { white-space: normal; }
+    .mirrors { margin-top: auto; padding-top: 10px; display:flex; flex-wrap:wrap; gap:8px; }
+    .mirrors a { font-size:12px; color:#1d4ed8; background: #eff6ff; padding: 4px 8px; border-radius: 4px; text-decoration:none; font-weight: 500; }
+    .tags { margin-top:10px; display:none; }
+    .tags.show-tags { display:block; }
+    .tags span { margin:0 4px 4px 0; font-size:11px; background:#f3f4f6; color: #4b5563; padding:2px 6px; border-radius:4px; display:inline-block; cursor:pointer; }
+
+    .filter-toggle { 
+      position: fixed; 
+      left: 0; 
+      top: 50%; 
+      transform: translateY(-50%); 
+      background: #1d4ed8; 
+      color:#fff; 
+      width:28px; 
+      height:80px; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      cursor:pointer; 
+      border-radius:0 8px 8px 0; 
+      z-index:1000; 
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    .filter-toggle.open { left: 280px; }
+    .filter-toggle::after { content: '›'; font-size: 20px; font-weight: bold; }
+    .filter-toggle.open::after { content: '‹'; }
+
+    .filter-menu { 
+      position: fixed; 
+      left: -280px; 
+      top:0; 
+      width:280px; 
+      height:100%; 
+      background:#fff; 
+      border-right:1px solid #e5e7eb; 
+      display:flex; 
+      flex-direction:column; 
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      z-index:999; 
+      box-shadow: 5px 0 25px rgba(0,0,0,0.05);
+    }
+    .filter-menu.open { left:0; }
+    
+    .filter-menu .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .filter-menu .sidebar-header h2 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      font-weight: 800;
+      color: #111827;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .filter-menu .sidebar-header .results-count {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: normal;
+      text-transform: none;
+    }
+
+    .filter-menu .action-buttons { 
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .filter-menu .action-buttons button { 
+      padding: 8px; 
+      cursor: pointer; 
+      border: 1px solid #e5e7eb; 
+      background: #fff; 
+      border-radius: 6px; 
+      font-size: 12px; 
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .filter-menu .action-buttons button#resetTags { background: #f9fafb; color: #374151; grid-column: span 2; }
+    .filter-menu .action-buttons button:hover { border-color: #1d4ed8; color: #1d4ed8; }
+
+    .local-sort-switch {
+      display: flex;
+      background: #f3f4f6;
+      border-radius: 6px;
+      padding: 3px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .local-sort-switch button {
+      flex: 1;
+      border: none;
+      background: none;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 0;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      color: #6b7280;
+    }
+    .local-sort-switch button.active {
+      background: #fff;
+      color: #1d4ed8;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    #filterCategories { 
+      flex:1; 
+      overflow-y:auto; 
+      padding: 10px 20px; 
+      scrollbar-width: thin;
+    }
+    
+    .filter-category { margin-bottom: 8px; }
+    .filter-category-header { 
+      display:flex; 
+      align-items:center; 
+      padding: 10px 0;
+      cursor:pointer; 
+      border-bottom: 1px solid #f9fafb;
+    }
+    .filter-category-header strong { flex:1; font-size: 14px; color: #374151; }
+    .filter-category-header .arrow { font-size: 10px; margin-right: 10px; transition: transform 0.3s; color: #9ca3af; }
+    .filter-category-header .arrow.expanded { transform: rotate(90deg); color: #1d4ed8; }
+    
+    .filter-category-content { padding: 8px 0 15px 15px; display: none; }
+    .filter-category-content.expanded { display: block; }
+    
+    .filter-category label { 
+      display: flex; 
+      align-items: center; 
+      font-size: 13px; 
+      color: #4b5563;
+      margin-bottom: 8px; 
+      cursor: pointer;
+    }
+    .filter-category input[type="checkbox"], .image-checkbox-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .image-checkbox-item input[type="checkbox"] {
+      margin-right: 0;
+    }
+    input[type="checkbox"][data-state="1"] {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+    input[type="checkbox"][data-state="1"]::after {
+      content: '✓';
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    input[type="checkbox"][data-state="2"] {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+    input[type="checkbox"][data-state="2"]::after {
+      content: '✕';
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .tag-count {
+      margin-left: auto;
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: normal;
+    }
+
+    .model-buttons { display:flex; gap: 5px; margin-bottom: 15px; }
+    .model-buttons button { flex:1; padding:6px; font-size:11px; border-radius: 4px; border: 1px solid #eee; background: #f9fafb; cursor: pointer; }
+
+    .image-grid { display:grid; gap:8px; margin-top:5px; }
+    .image-grid.cols-2 { grid-template-columns:repeat(2,1fr); }
+    .image-grid.cols-3 { grid-template-columns:repeat(3,1fr); }
+    .image-checkbox-item { position:relative; aspect-ratio:3/4; overflow:hidden; border-radius: 6px; border: 1px solid #eee; display: flex; flex-direction: column; }
+    .image-checkbox-item input[type="checkbox"] { position:absolute; top:5px; left:5px; z-index:2; width: 18px; height: 18px; }
+    .image-checkbox-item img { width:100%; height:100%; object-fit:cover; }
+    .image-checkbox-item .tag-text { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:white; font-size:10px; padding:4px; text-align:center; z-index: 1; }
+    .image-checkbox-item .image-tag-count { font-size: 10px; opacity: 0.8; }
+
+    .pagination { 
+      margin: 40px 0 80px 0; 
+      text-align: center; 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 8px; 
+      justify-content: center; 
+      padding: 0 20px;
+    }
+    .pagination button { 
+      min-width: 40px; 
+      height: 40px; 
+      border: 1px solid #e5e7eb; 
+      background: #fff; 
+      cursor: pointer; 
+      border-radius: 8px; 
+      font-weight: 600; 
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s; 
+    }
+    .pagination button.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .pagination .dots { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      min-width: 40px; 
+      color: #9ca3af; 
+      font-weight: bold; 
+    }
+
+    .active-tag-filter { position: fixed; bottom:30px; right:30px; background:#1d4ed8; color:white; padding:10px 20px; border-radius:30px; display:flex; align-items:center; gap:12px; box-shadow:0 10px 20px rgba(29, 78, 216, 0.3); z-index:999; }
+    .hidden { display:none !important; }
+
+    /* New Shuffle Button Style */
+    .floating-shuffle-btn {
+      position: fixed;
+      bottom: 90px;
+      right: 30px;
+      background: #8b5cf6;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+      z-index: 999;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    .floating-shuffle-btn:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+  
+  <div id="splashScreen">
+    <img id="splashImgBlur" alt="">
+    <img id="splashImg" alt="Loading Background">
+    <div id="splashTitle"></div>
+    <button id="continueBtn">Continue</button>
+  </div>
+
+  <div class="filter-toggle" id="filterToggle"></div>
+  <div class="filter-menu" id="filterMenu">
+    <div class="sidebar-header">
+      <h2>Filters <span id="resultsCounter" class="results-count">(Showing 0 results)</span></h2>
+      <div class="action-buttons">
+        <button id="resetTags">Reset All</button>
+        <button id="onlyTags">Match All</button>
+        <button id="allTags">Match Any</button>
+      </div>
+    </div>
+    <div id="filterCategories"></div>
+  </div>
+
+  <div id="activeTagFilter" class="active-tag-filter" style="display:none;">
+    <span id="activeTagText" style="font-size: 14px; font-weight: 500;"></span>
+    <button id="clearTagFilter" style="background:rgba(255,255,255,0.2); border:none; color:white; width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:16px;">&times;</button>
+  </div>
+  
+  <button id="shuffleBtn" class="floating-shuffle-btn hidden" title="Shuffle Again">🔀</button>
+
+  <div class="toolbar">
+    <button class="search-btn" id="searchToggle">🔍 Search</button>
+    <div class="display-options">
+      <button class="display-btn" id="displayBtn">⚙️ Display</button>
+      <div class="display-content" id="displayContent">
+        <div class="display-option">
+          <label>Grid Size</label>
+          <select id="gridSize">
+            <option value="1">1 Column</option>
+            <option value="2" selected>2 Columns</option>
+            <option value="4">4 Columns</option>
+          </select>
+        </div>
+        <div class="display-option">
+          <label>Model Grid</label>
+          <select id="modelGridSize">
+            <option value="3" selected>3 Wide</option>
+            <option value="2">2 Wide</option>
+          </select>
+        </div>
+        <div class="display-option">
+          <label>Sort Order</label>
+          <select id="sortOption">
+            <option value="default-asc">Default (Asc)</option>
+            <option value="default-desc">Default (Desc)</option>
+            <option value="title-asc">Title (A-Z)</option>
+            <option value="title-desc">Title (Z-A)</option>
+            <option value="random">Random</option> <!-- Added Random Sort -->
+          </select>
+        </div>
+        <div class="display-option">
+          <label style="display: flex; align-items: center; text-transform: none; color: #374151;">
+            <input type="checkbox" id="showAllPages" style="margin-right: 8px;"> Show all page numbers
+          </label>
+        </div>
+        <div class="display-option">
+          <label style="display: flex; align-items: center; text-transform: none; color: #374151;">
+            <input type="checkbox" id="showFullTitle" style="margin-right: 8px;"> Show Full Title
+          </label>
+        </div>
+        <div class="display-option">
+          <label style="display: flex; align-items: center; text-transform: none; color: #374151;">
+            <input type="checkbox" id="showTags" style="margin-right: 8px;"> Show Tags
+          </label>
+        </div>
+        <div class="display-option">
+          <label style="display: flex; align-items: center; text-transform: none; color: #374151;">
+            <input type="checkbox" id="dynamicCounter" style="margin-right: 8px;" checked> Dynamic counter
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-panel" id="searchPanel">
+    <div class="search-panel-header">Find Items</div>
+    <div class="search-panel-content">
+      <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+        <input type="text" id="searchInput" placeholder="Enter title..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px; outline:none;">
+        <button id="searchBtn" style="padding:10px 15px; background:#1d4ed8; color:white; border:none; border-radius:6px; cursor:pointer;">Search</button>
+      </div>
+      <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="matchWholeWord"> Whole word only
+      </label>
+      <div id="searchResultsInfo" style="display:none; font-size:12px; margin-top:15px; color:#666; padding-top:10px; border-top:1px solid #eee;"></div>
+      <button id="clearSearch" style="display:none; background:none; border:none; color:#1d4ed8; cursor:pointer; font-size:12px; margin-top:10px; text-decoration:underline; padding:0;">Clear Search</button>
+    </div>
+  </div>
+
+  <div class="grid" id="content"></div>
+  <div class="pagination" id="pagination"></div>
+
+  <script>
+const PC_SPLASH_IMAGES = [
+  { url: "https://www.primecurves.com/app/uploads/galleries/demmy-blaze-huge-boobs-fitness/4.jpg", title: "Demmy Blaze" },
+  { url: "https://cdn77.scoreuniverse.com/scoreland/gallys/images_content/DemmyBlaze_34565/01.jpg", title: "Demmy Blaze" },
+  { url: "https://www.foxhq.com/wp-content/uploads/tessa-fowler-jack-olantern-pinupfiles/1698801039-25075f3f46caafcc50e240ab336588e1.jpeg", title: "Tessa Fowler" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/01/vivian-blush-because-you-love-me-topless-6.jpg", title: "Vivian Blush" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/12/xenia-wood-obscenely-busty-business-woman-4.jpg", title: "Xenia Wood" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/12/xenia-wood-obscenely-busty-business-woman-5.jpg", title: "Xenia Wood" },
+  { url: "https://www.babesandstars.com/galleries/15000/15110/06.jpg", title: "Leanne Crow" },
+  { url: "https://www.primecurves.com/app/uploads/galleries/leanne-crow-pink-muse/2.jpg", title: "Leanne Crow" },
+  { url: "https://pbs.twimg.com/media/Ej6XKkrVoAAc1GQ?format=jpg&name=large", title: "Lovely Lilith" },
+  { url: "https://cdn77.scoreuniverse.com/xlgirls/scenes/AndiPeacock_36394/Gallys/xlgirls/01.jpg", title: "Andi Peacock" },
+  { url: "https://x.jjj.cam/pics/downblousejerk/cherry-blush/luxury-tease-vip-pics/cherry-blush-11.jpg", title: "Cherry Blush" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2023/06/samanta-lily-sunny-afternoon-3.jpg", title: "Samanta Lily" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2021/02/samanta-lily-sweet-me-kinky-lingerie-5.jpg", title: "Samanta Lily" },
+  { url: "https://www.porn-star.com/angela_white/06.jpg", title: "Angela White" },
+  { url: "https://fuskator.me/uploads/posts/2022-05/1652329626_10-fuskator-me-p-marie-and-steffi-lactating-porn-11.jpg", title: "Nadine Jansen" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2021/08/maria-body-seductive-red-lingerie-pinupfiles-3.jpg", title: "Maria B" },
+];
+const MOBILE_SPLASH_IMAGES = [
+  { url: "https://www.primecurves.com/app/uploads/galleries/demmy-blaze-huge-boobs-fitness/4.jpg", title: "Demmy Blaze" },
+  { url: "https://cdn77.scoreuniverse.com/scoreland/gallys/images_content/DemmyBlaze_34565/01.jpg", title: "Demmy Blaze" },
+  { url: "https://www.foxhq.com/wp-content/uploads/tessa-fowler-jack-olantern-pinupfiles/1698801039-25075f3f46caafcc50e240ab336588e1.jpeg", title: "Tessa Fowler" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/01/vivian-blush-because-you-love-me-topless-6.jpg", title: "Vivian Blush" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/12/xenia-wood-obscenely-busty-business-woman-4.jpg", title: "Xenia Wood" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2019/12/xenia-wood-obscenely-busty-business-woman-5.jpg", title: "Xenia Wood" },
+  { url: "https://www.babesandstars.com/galleries/15000/15110/06.jpg", title: "Leanne Crow" },
+  { url: "https://www.primecurves.com/app/uploads/galleries/leanne-crow-pink-muse/2.jpg", title: "Leanne Crow" },
+  { url: "https://pbs.twimg.com/media/Ej6XKkrVoAAc1GQ?format=jpg&name=large", title: "Lovely Lilith" },
+  { url: "https://cdn77.scoreuniverse.com/xlgirls/scenes/AndiPeacock_36394/Gallys/xlgirls/01.jpg", title: "Andi Peacock" },
+  { url: "https://x.jjj.cam/pics/downblousejerk/cherry-blush/luxury-tease-vip-pics/cherry-blush-11.jpg", title: "Cherry Blush" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2023/06/samanta-lily-sunny-afternoon-3.jpg", title: "Samanta Lily" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2021/02/samanta-lily-sweet-me-kinky-lingerie-5.jpg", title: "Samanta Lily" },
+  { url: "https://www.porn-star.com/angela_white/06.jpg", title: "Angela White" },
+  { url: "https://fuskator.me/uploads/posts/2022-05/1652329626_10-fuskator-me-p-marie-and-steffi-lactating-porn-11.jpg", title: "Nadine Jansen" },
+  { url: "https://cdn.curvyerotic.com/wp-content/uploads/2021/08/maria-body-seductive-red-lingerie-pinupfiles-3.jpg", title: "Maria B" },
+];
+
+    function initSplash() {
+      const isMobile = window.innerWidth <= 768;
+      const images = isMobile ? MOBILE_SPLASH_IMAGES : PC_SPLASH_IMAGES;
+      if (images.length > 0) {
+        const selected = images[Math.floor(Math.random() * images.length)];
+        document.getElementById('splashImg').src = selected.url;
+        document.getElementById('splashImgBlur').src = selected.url; // Ambient background clone
+        document.getElementById('splashTitle').textContent = selected.title;
+      }
+    }
+    initSplash();
+
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwqxLEYltWA7bGzuZH4mF3jxHcUR6fECH5fmpRFrEvBeFW68uYj0-vPkGP1LEt4xl5w/exec';
+    const ITEMS_PER_PAGE = 60;
+    let allData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    let includedTags = new Set();
+    let excludedTags = new Set();
+    let imageUrls = [];
+    let modelTags = [];
+    let lastCategoryName = '';
+    let activeTagFilter = null;
+    let currentSortOption = 'default-asc';
+    let isSearchActive = false;
+    let localSortMode = 'videos';
+
+    async function load() {
+      try {
+        const res = await fetch(WEBAPP_URL);
+        allData = await res.json();
+        filteredData = [...allData];
+        imageUrls = allData.map(row => row[2] || '');
+        modelTags = allData.map(row => row[3] || '');
+
+        renderFilterCategories();
+        sortData(currentSortOption);
+        updateResultsCounter();
+        renderPage(1);
+        setupDisplayOptions();
+        setupSearch();
+
+        const continueBtn = document.getElementById('continueBtn');
+        continueBtn.classList.add('show');
+        continueBtn.addEventListener('click', () => {
+          const splash = document.getElementById('splashScreen');
+          splash.classList.add('fade-out');
+          setTimeout(() => splash.style.display = 'none', 500); 
+        });
+
+        const filterToggle = document.getElementById('filterToggle');
+        const filterMenu = document.getElementById('filterMenu');
+        const grid = document.getElementById('content');
+
+        filterToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          filterMenu.classList.toggle('open');
+          filterToggle.classList.toggle('open');
+          if (window.innerWidth > 768) {
+            grid.classList.toggle('filter-menu-open', filterMenu.classList.contains('open'));
+          }
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!filterMenu.contains(e.target) && !filterToggle.contains(e.target)) {
+            filterMenu.classList.remove('open');
+            filterToggle.classList.remove('open');
+            if (window.innerWidth > 768) grid.classList.remove('filter-menu-open');
+          }
+          const displayContent = document.getElementById('displayContent');
+          if (!displayContent.contains(e.target) && e.target.id !== 'displayBtn') displayContent.classList.remove('open');
+          const searchPanel = document.getElementById('searchPanel');
+          if (!searchPanel.contains(e.target) && e.target.id !== 'searchToggle') searchPanel.classList.remove('open');
+        });
+
+        document.getElementById('clearTagFilter').addEventListener('click', () => {
+          activeTagFilter = null;
+          document.getElementById('activeTagFilter').style.display = 'none';
+          if (isSearchActive) performSearch(); 
+          else {
+            filteredData = [...allData];
+            sortData(currentSortOption);
+            updateTagCounts();
+            updateResultsCounter();
+            renderPage(1);
+          }
+        });
+
+        // Initialize Shuffle Button click event
+        document.getElementById('shuffleBtn').addEventListener('click', () => {
+          sortData('random');
+          renderPage(1);
+        });
+      } catch (e) {
+        console.error("Load failed", e);
+      }
+    }
+
+    function setupSearch() {
+      const searchToggle = document.getElementById('searchToggle');
+      const searchPanel = document.getElementById('searchPanel');
+      const searchBtn = document.getElementById('searchBtn');
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearch');
+      
+      searchToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        searchPanel.classList.toggle('open');
+        if (searchPanel.classList.contains('open')) searchInput.focus();
+      });
+      
+      searchBtn.addEventListener('click', () => performSearch());
+      searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+      clearSearchBtn.addEventListener('click', () => clearSearch());
+    }
+    
+    function performSearch() {
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      const matchWholeWord = document.getElementById('matchWholeWord').checked;
+      if (!searchTerm) { clearSearch(); return; }
+      
+      const results = allData.filter(row => {
+        const title = String(row[5] || '').toLowerCase();
+        const term = searchTerm.toLowerCase();
+        if (matchWholeWord) {
+          const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          return regex.test(title);
+        }
+        return title.includes(term);
+      });
+      
+      filteredData = results;
+      isSearchActive = true;
+      activeTagFilter = null;
+      document.getElementById('activeTagFilter').style.display = 'none';
+      
+      const resultsInfo = document.getElementById('searchResultsInfo');
+      resultsInfo.style.display = 'block';
+      resultsInfo.textContent = `Found ${results.length} result(s) for "${searchTerm}"`;
+      document.getElementById('clearSearch').style.display = 'block';
+      
+      sortData(currentSortOption);
+      updateTagCounts();
+      updateResultsCounter();
+      renderPage(1);
+    }
+    
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResultsInfo').style.display = 'none';
+      document.getElementById('clearSearch').style.display = 'none';
+      isSearchActive = false;
+      filteredData = [...allData];
+      sortData(currentSortOption);
+      updateTagCounts();
+      updateResultsCounter();
+      renderPage(1);
+    }
+
+    function setupDisplayOptions() {
+      document.getElementById('gridSize').addEventListener('change', e => {
+        const val = parseInt(e.target.value, 10);
+        document.getElementById('content').style.gridTemplateColumns = `repeat(${val}, 1fr)`;
+      });
+
+      document.getElementById('sortOption').addEventListener('change', e => {
+        currentSortOption = e.target.value;
+        sortData(currentSortOption);
+        renderPage(1);
+      });
+
+      document.getElementById('showFullTitle').addEventListener('change', e => {
+        document.querySelectorAll('.card-content a').forEach(a => e.target.checked ? a.classList.add('full-title') : a.classList.remove('full-title'));
+      });
+
+      document.getElementById('showTags').addEventListener('change', e => {
+        document.querySelectorAll('.tags').forEach(t => e.target.checked ? t.classList.add('show-tags') : t.classList.remove('show-tags'));
+      });
+
+      document.getElementById('dynamicCounter').addEventListener('change', () => {
+        updateTagCounts();
+      });
+
+      document.getElementById('showAllPages').addEventListener('change', () => {
+        renderPagination();
+      });
+
+      document.getElementById('modelGridSize').addEventListener('change', e => {
+        const grid = document.getElementById('models-grid');
+        if (grid) {
+          grid.classList.remove('cols-2', 'cols-3');
+          grid.classList.add(`cols-${e.target.value}`);
+        }
+      });
+
+      document.getElementById('displayBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('displayContent').classList.toggle('open');
+      });
+    }
+
+    function getTagCounts() {
+      const isDynamic = document.getElementById('dynamicCounter').checked;
+      const dataToCount = isDynamic ? filteredData : allData;
+      const counts = {};
+      dataToCount.forEach(row => {
+        const rowTags = row[6] ? row[6].split(',').map(t => t.trim()) : [];
+        rowTags.forEach(tag => {
+          counts[tag] = (counts[tag] || 0) + 1;
+        });
+      });
+      return counts;
+    }
+
+    function updateTagCounts() {
+      const counts = getTagCounts();
+      
+      document.querySelectorAll('.filter-category:not(:last-child) label').forEach(label => {
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        if (!checkbox) return;
+        const tag = checkbox.value;
+        let countSpan = label.querySelector('.tag-count');
+        if (!countSpan) {
+          countSpan = document.createElement('span');
+          countSpan.className = 'tag-count';
+          label.appendChild(countSpan);
+        }
+        countSpan.textContent = `(${counts[tag] || 0})`;
+      });
+
+      if (document.getElementById('models-grid')) {
+        renderSortedModelsGrid(counts);
+      }
+    }
+
+    function updateResultsCounter() {
+      const counter = document.getElementById('resultsCounter');
+      if (counter) {
+        counter.textContent = `(Showing ${filteredData.length} results)`;
+      }
+    }
+
+    function renderSortedModelsGrid(counts) {
+      const grid = document.getElementById('models-grid');
+      if (!grid) return;
+
+      const countsMap = counts || getTagCounts();
+      const items = Array.from(grid.querySelectorAll('.image-checkbox-item'));
+      
+      items.sort((a, b) => {
+        const tagA = a.querySelector('input').value;
+        const tagB = b.querySelector('input').value;
+        const countA = countsMap[tagA] || 0;
+        const countB = countsMap[tagB] || 0;
+
+        if (localSortMode === 'videos') {
+          if (countB !== countA) return countB - countA;
+          return tagA.localeCompare(tagB);
+        } else {
+          return tagA.localeCompare(tagB);
+        }
+      });
+
+      grid.innerHTML = '';
+      items.forEach(item => {
+        const tag = item.querySelector('input').value;
+        const count = countsMap[tag] || 0;
+        const tagTextDiv = item.querySelector('.tag-text');
+        if (tagTextDiv) {
+          tagTextDiv.innerHTML = `${tag} <span class="image-tag-count">(${count})</span>`;
+        }
+        grid.appendChild(item);
+      });
+    }
+
+    function sortData(sortOption) {
+      if (!filteredData || filteredData.length === 0) return;
+
+      if (sortOption === 'default-asc') {
+        filteredData.sort((a, b) => allData.indexOf(a) - allData.indexOf(b));
+      } else if (sortOption === 'default-desc') {
+        filteredData.sort((a, b) => allData.indexOf(b) - allData.indexOf(a));
+      } else if (sortOption === 'title-asc') {
+        filteredData.sort((a, b) => String(a[5] || '').localeCompare(String(b[5] || '')));
+      } else if (sortOption === 'title-desc') {
+        filteredData.sort((a, b) => String(b[5] || '').localeCompare(String(a[5] || '')));
+      } else if (sortOption === 'random') {
+        // Fisher-Yates shuffle algorithm
+        for (let i = filteredData.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [filteredData[i], filteredData[j]] = [filteredData[j], filteredData[i]];
+        }
+      }
+      
+      renderPagination();
+      
+      // Control Floating Shuffle Button visibility
+      const shuffleBtn = document.getElementById('shuffleBtn');
+      if (sortOption === 'random') {
+        shuffleBtn.classList.remove('hidden');
+      } else {
+        shuffleBtn.classList.add('hidden');
+      }
+    }
+
+    function applyFilter(mode) {
+      if (isSearchActive) return;
+      const incArr = Array.from(includedTags);
+      const excArr = Array.from(excludedTags);
+      
+      if (incArr.length === 0 && excArr.length === 0) {
+        filteredData = [...allData];
+      } else {
+        filteredData = allData.filter(row => {
+          const rowTags = row[6] ? row[6].split(',').map(t => t.trim()) : [];
+          
+          if (excArr.some(t => rowTags.includes(t))) return false;
+          if (incArr.length === 0) return true;
+          
+          if (mode === 'only') return incArr.every(t => rowTags.includes(t));
+          if (mode === 'all') return incArr.some(t => rowTags.includes(t));
+          return true;
+        });
+      }
+      sortData(currentSortOption);
+      updateTagCounts();
+      updateResultsCounter();
+      renderPage(1);
+    }
+
+    function renderFilterCategories() {
+      const container = document.getElementById('filterCategories');
+      container.innerHTML = '';
+      const categories = {};
+      
+      allData.forEach(row => {
+        const parts = (row[0] || '').split(':');
+        if (parts.length < 2) return;
+        const cat = parts[0].trim();
+        const tags = parts.slice(1).join(':').split(',').map(t => t.trim());
+        if (!categories[cat]) categories[cat] = new Set();
+        tags.forEach(t => categories[cat].add(t));
+      });
+
+      const catNames = Object.keys(categories);
+      lastCategoryName = catNames[catNames.length - 1];
+
+      catNames.forEach((cat, idx) => {
+        const isLast = idx === catNames.length - 1;
+        const catDiv = document.createElement('div');
+        catDiv.className = 'filter-category';
+        catDiv.id = `category-${cat.replace(/\s+/g,'-')}`;
+        
+        const header = document.createElement('div');
+        header.className = 'filter-category-header';
+        header.innerHTML = `<span class="arrow ${idx === 0 ? 'expanded' : ''}">▶</span><strong>${cat}</strong>`;
+        
+        const content = document.createElement('div');
+        content.className = `filter-category-content ${idx === 0 ? 'expanded' : ''}`;
+
+        if (isLast) {
+          content.innerHTML = `
+            <div class="model-buttons">
+              <button class="reset-models">Reset</button>
+              <button class="only-models">Match All</button>
+              <button class="all-models">Match Any</button>
+            </div>
+            <div class="local-sort-switch">
+              <button id="localSortName">Name</button>
+              <button id="localSortVideos" class="active">Most Videos</button>
+            </div>
+            <div id="models-container"></div>`;
+          header.onclick = () => {
+            header.querySelector('.arrow').classList.toggle('expanded');
+            content.classList.toggle('expanded');
+            if (content.classList.contains('expanded') && !document.getElementById('models-grid')) populateModelsGrid(cat);
+          };
+        } else {
+          categories[cat].forEach(tag => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" data-state="0" value="${tag}"> ${tag}`;
+            label.querySelector('input').onclick = handleTriStateClick;
+            content.appendChild(label);
+          });
+          header.onclick = () => {
+            header.querySelector('.arrow').classList.toggle('expanded');
+            content.classList.toggle('expanded');
+          };
+        }
+        catDiv.appendChild(header); catDiv.appendChild(content); container.appendChild(catDiv);
+      });
+
+      updateTagCounts();
+
+      document.getElementById('filterCategories').addEventListener('click', (e) => {
+        if (e.target.classList.contains('reset-models')) resetModels();
+        if (e.target.classList.contains('only-models')) onlyModels();
+        if (e.target.classList.contains('all-models')) allModels();
+        
+        if (e.target.id === 'localSortName') {
+          localSortMode = 'name';
+          e.target.classList.add('active');
+          document.getElementById('localSortVideos').classList.remove('active');
+          updateTagCounts();
+        }
+        if (e.target.id === 'localSortVideos') {
+          localSortMode = 'videos';
+          e.target.classList.add('active');
+          document.getElementById('localSortName').classList.remove('active');
+          updateTagCounts();
+        }
+      });
+    }
+
+    function populateModelsGrid(cat) {
+      const container = document.getElementById('models-container');
+      const tagList = Array.from(new Set(allData.flatMap(r => {
+        const p = (r[0] || '').split(':');
+        return (p[0] && p[0].trim() === cat) ? p.slice(1).join(':').split(',').map(t=>t.trim()) : [];
+      }))).filter(Boolean);
+
+      const gridSize = document.getElementById('modelGridSize').value;
+      const grid = document.createElement('div');
+      grid.className = `image-grid cols-${gridSize}`;
+      grid.id = 'models-grid';
+
+      tagList.forEach((tag, i) => {
+        const item = document.createElement('div');
+        item.className = 'image-checkbox-item';
+        item.dataset.tags = modelTags[i] || '';
+        item.innerHTML = `<input type="checkbox" data-state="0" value="${tag}"><img src="${imageUrls[i] || ''}" onerror="this.style.display='none'"><div class="tag-text">${tag}</div>`;
+        item.querySelector('input').onclick = handleTriStateClick;
+        grid.appendChild(item);
+      });
+      container.appendChild(grid);
+      updateTagCounts();
+    }
+
+    function resetModels() {
+      const grid = document.getElementById('models-grid');
+      if (grid) {
+        grid.querySelectorAll('input').forEach(i => i.dataset.state = '0');
+        grid.querySelectorAll('.image-checkbox-item').forEach(el => el.classList.remove('hidden'));
+        updateFilterSets();
+      }
+    }
+
+    function onlyModels() {
+      const activeInc = Array.from(document.querySelectorAll('.filter-category:not(:last-child) input[data-state="1"]')).map(c => c.value);
+      const activeExc = Array.from(document.querySelectorAll('.filter-category:not(:last-child) input[data-state="2"]')).map(c => c.value);
+      document.querySelectorAll('#models-grid .image-checkbox-item').forEach(item => {
+        const itags = (item.dataset.tags || '').split(',').map(t => t.trim());
+        let show = true;
+        if (activeExc.some(t => itags.includes(t))) show = false;
+        else if (activeInc.length > 0 && !activeInc.every(t => itags.includes(t))) show = false;
+        item.classList.toggle('hidden', !show);
+      });
+    }
+
+    function allModels() {
+      const activeInc = Array.from(document.querySelectorAll('.filter-category:not(:last-child) input[data-state="1"]')).map(c => c.value);
+      const activeExc = Array.from(document.querySelectorAll('.filter-category:not(:last-child) input[data-state="2"]')).map(c => c.value);
+      document.querySelectorAll('#models-grid .image-checkbox-item').forEach(item => {
+        const itags = (item.dataset.tags || '').split(',').map(t => t.trim());
+        let show = true;
+        if (activeExc.some(t => itags.includes(t))) show = false;
+        else if (activeInc.length > 0 && !activeInc.some(t => itags.includes(t))) show = false;
+        item.classList.toggle('hidden', !show);
+      });
+    }
+
+    function filterByTag(tag) {
+      if (isSearchActive) clearSearch();
+      activeTagFilter = tag;
+      document.getElementById('activeTagFilter').style.display = 'flex';
+      document.getElementById('activeTagText').textContent = `Showing tag: ${tag}`;
+      filteredData = allData.filter(row => (row[6] || '').split(',').map(t=>t.trim()).includes(tag));
+      sortData(currentSortOption);
+      updateTagCounts();
+      updateResultsCounter();
+      renderPage(1);
+    }
+
+    function renderPage(page) {
+      currentPage = page;
+      const grid = document.getElementById('content');
+      grid.innerHTML = '';
+      const start = (page - 1) * ITEMS_PER_PAGE;
+      const pageData = filteredData.slice(start, start + ITEMS_PER_PAGE);
+
+      pageData.forEach(row => {
+        const tags = (row[6] || '').split(',').filter(Boolean);
+        const mirrors = (row[8] || '').split(',').map(p => {
+          const m = p.match(/([^:]+):\"(.*?)\"/);
+          return m ? `<a href="${m[2].trim()}" target="_blank">${m[1].trim()}</a>` : '';
+        }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${row[4]}" alt="${row[5]}">
+          <div class="card-content">
+            <a href="${row[7]}" target="_blank" class="${document.getElementById('showFullTitle').checked ? 'full-title' : ''}">${row[5]}</a>
+            <div class="mirrors">${mirrors}</div>
+            <div class="tags ${document.getElementById('showTags').checked ? 'show-tags' : ''}">
+              ${tags.map(t => `<span onclick="filterByTag('${t.trim().replace(/'/g,"\\'")}')">${t.trim()}</span>`).join('')}
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+      if (totalPages <= 1) return;
+
+      const showAll = document.getElementById('showAllPages').checked;
+
+      if (showAll) {
+        for (let i = 1; i <= totalPages; i++) {
+          container.appendChild(createPageButton(i));
+        }
+      } else {
+        const pages = [];
+        if (totalPages <= 7) {
+          for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          if (currentPage > 3) pages.push('...');
+          
+          let start = Math.max(2, currentPage - 1);
+          let end = Math.min(totalPages - 1, currentPage + 1);
+          
+          if (currentPage <= 3) end = 4;
+          if (currentPage >= totalPages - 2) start = totalPages - 3;
+          
+          for (let i = start; i <= end; i++) pages.push(i);
+          
+          if (currentPage < totalPages - 2) pages.push('...');
+          pages.push(totalPages);
+        }
+
+        pages.forEach(p => {
+          if (p === '...') {
+            const dots = document.createElement('span');
+            dots.className = 'dots';
+            dots.textContent = '...';
+            container.appendChild(dots);
+          } else {
+            container.appendChild(createPageButton(p));
+          }
+        });
+      }
+    }
+
+    function createPageButton(num) {
+      const btn = document.createElement('button');
+      btn.textContent = num;
+      if (num === currentPage) btn.className = 'active';
+      btn.onclick = () => renderPage(num);
+      return btn;
+    }
+
+    function handleTriStateClick(e) {
+      e.preventDefault();
+      const input = e.currentTarget;
+      let state = parseInt(input.dataset.state || '0');
+      state = (state + 1) % 3;
+      input.dataset.state = state;
+      updateFilterSets();
+    }
+
+    function updateFilterSets() {
+      includedTags.clear();
+      excludedTags.clear();
+      document.querySelectorAll('#filterCategories input[type="checkbox"], #models-grid input[type="checkbox"]').forEach(i => {
+        if (i.dataset.state === '1') includedTags.add(i.value);
+        if (i.dataset.state === '2') excludedTags.add(i.value);
+      });
+    }
+
+    document.getElementById('resetTags').addEventListener('click', () => {
+      includedTags.clear();
+      excludedTags.clear();
+      document.querySelectorAll('#filterCategories input').forEach(i => i.dataset.state = '0');
+      resetModels();
+      activeTagFilter = null;
+      document.getElementById('activeTagFilter').style.display = 'none';
+      if (isSearchActive) clearSearch();
+      else {
+        filteredData = [...allData];
+        sortData(currentSortOption);
+        updateTagCounts();
+        updateResultsCounter();
+        renderPage(1);
+      }
+    });
+
+    document.getElementById('onlyTags').addEventListener('click', () => applyFilter('only'));
+    document.getElementById('allTags').addEventListener('click', () => applyFilter('all'));
+
+    load();
+  </script>
+</body>
+</html>
